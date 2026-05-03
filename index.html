@@ -1,1 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrarian Edge Tracker</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        .card { 
+            background: rgba(30, 41, 59, 0.6); 
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 16px; 
+            padding: 24px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3); 
+        }
+        button { 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 10px; 
+            font-size: 14px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+        }
+        .btn-primary { 
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6); 
+            color: white; 
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-secondary { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
+        textarea, input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid rgba(148, 163, 184, 0.2); 
+            border-radius: 10px; 
+            font-size: 14px; 
+            margin: 8px 0; 
+            background: rgba(30, 41, 59, 0.4);
+            color: white;
+        }
+        .game-card { 
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8));
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 16px; 
+            padding: 20px; 
+            margin: 14px 0;
+        }
+        .hidden { display: none !important; }
+        .gap-display {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            margin: 0 8px;
+        }
+        .gap-positive { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .gap-negative { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen" class="container" style="text-align: center; padding-top: 100px;">
+    <h1 style="font-size: 42px; margin-bottom: 12px;">Contrarian Edge</h1>
+    <p style="color: #94a3b8; margin-bottom: 40px;">Professional betting intelligence</p>
+    <button onclick="doSignIn()" class="btn-primary" style="font-size: 16px; padding: 16px 48px;">
+        Sign in with Google
+    </button>
+</div>
+
+<!-- Sport Selection -->
+<div id="sport-selection-screen" class="hidden">
+    <div class="container" style="text-align: center; padding-top: 60px;">
+        <h1 style="font-size: 36px; margin-bottom: 20px;">Select Sport</h1>
+        
+        <div style="max-width: 400px; margin: 0 auto 30px;">
+            <input type="text" id="odds-api-key" placeholder="The Odds API Key (theoddsapi.com)" style="margin-bottom: 10px;">
+            <p style="font-size: 12px; color: #64748b;">Get free key at <a href="https://theoddsapi.com" target="_blank" style="color: #60a5fa;">theoddsapi.com</a></p>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto;">
+            <button onclick="selectSport('basketball_nba')" class="btn-primary" style="padding: 30px; font-size: 18px;">
+                <div style="font-size: 40px; margin-bottom: 8px;">🏀</div>
+                NBA
+            </button>
+            <button onclick="selectSport('baseball_mlb')" class="btn-primary" style="padding: 30px; font-size: 18px;">
+                <div style="font-size: 40px; margin-bottom: 8px;">⚾</div>
+                MLB
+            </button>
+            <button onclick="selectSport('americanfootball_nfl')" class="btn-primary" style="padding: 30px; font-size: 18px;">
+                <div style="font-size: 40px; margin-bottom: 8px;">🏈</div>
+                NFL
+            </button>
+            <button onclick="selectSport('icehockey_nhl')" class="btn-primary" style="padding: 30px; font-size: 18px;">
+                <div style="font-size: 40px; margin-bottom: 8px;">🏒</div>
+                NHL
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Main App -->
+<div id="app-screen" class="hidden">
+    <div class="container">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <div>
+                <h1 style="font-size: 32px;" id="sport-title">Loading...</h1>
+                <p style="color: #94a3b8; font-size: 14px;" id="user-email"></p>
+            </div>
+            <div>
+                <button onclick="changeSport()" class="btn-secondary" style="margin-right: 10px;">Change Sport</button>
+                <button onclick="doSignOut()" class="btn-secondary">Sign Out</button>
+            </div>
+        </div>
+
+        <!-- Import Section -->
+        <div class="card">
+            <h3 style="margin-bottom: 16px; font-size: 20px;">📊 Import Public Data</h3>
+            <button onclick="fetchBovadaOdds()" class="btn-primary" style="margin-bottom: 16px;">
+                🔄 Fetch Bovada Odds
+            </button>
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 12px;">
+                Paste full SBD data (will extract money percentages):
+            </p>
+            <textarea id="import-text" rows="6" placeholder="LAL -3.5 -150 45% 65% 52% 58%
+BOS +3.5 +130 55% 35% 48% 42%"></textarea>
+            <button onclick="importData()" class="btn-primary" style="width: 100%;">Process Data</button>
+        </div>
+
+        <!-- Games List -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 20px;">🎯 Contrarian Plays</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select id="sort-by" onchange="renderGames()" style="width: auto; padding: 8px 12px; background: rgba(15, 23, 42, 0.8);">
+                        <option value="largest">Sort by Largest Gap</option>
+                        <option value="spread">Sort by Spread Gap</option>
+                        <option value="ml">Sort by ML Gap</option>
+                    </select>
+                    <button onclick="clearAllGames()" class="btn-secondary" style="padding: 8px 12px; font-size: 12px;">Clear All</button>
+                </div>
+            </div>
+            <div id="games-list"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="card">
+            <h3 style="margin-bottom: 16px;">📈 Results</h3>
+            <div id="results-stats" style="margin-bottom: 16px;"></div>
+            <div id="results-list"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Firebase config
+const firebaseConfig = {
+    apiKey: "AIzaSyB8EmsdGFvQLRRWev3zM8wzSXXhgWjHeO4",
+    authDomain: "nba-tracker-641f0.firebaseapp.com",
+    databaseURL: "https://nba-tracker-641f0-default-rtdb.firebaseio.com",
+    projectId: "nba-tracker-641f0",
+    storageBucket: "nba-tracker-641f0.firebasestorage.app",
+    messagingSenderId: "29717054876",
+    appId: "1:29717054876:web:fc4bf3d1242967fe857459"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+// Team name mappings - handles all variations
+const teamMappings = {
+    // NBA
+    'ATL': ['atlanta', 'hawks', 'atl'],
+    'BOS': ['boston', 'celtics', 'bos'],
+    'BKN': ['brooklyn', 'nets', 'bkn', 'brk'],
+    'CHA': ['charlotte', 'hornets', 'cha'],
+    'CHI': ['chicago', 'bulls', 'chi'],
+    'CLE': ['cleveland', 'cavaliers', 'cavs', 'cle'],
+    'DAL': ['dallas', 'mavericks', 'mavs', 'dal'],
+    'DEN': ['denver', 'nuggets', 'den'],
+    'DET': ['detroit', 'pistons', 'det'],
+    'GSW': ['golden', 'state', 'warriors', 'gsw', 'gs'],
+    'HOU': ['houston', 'rockets', 'hou'],
+    'IND': ['indiana', 'pacers', 'ind'],
+    'LAC': ['la', 'clippers', 'lac'],
+    'LAL': ['lakers', 'lal'],
+    'MEM': ['memphis', 'grizzlies', 'mem'],
+    'MIA': ['miami', 'heat', 'mia'],
+    'MIL': ['milwaukee', 'bucks', 'mil'],
+    'MIN': ['minnesota', 'timberwolves', 'wolves', 'min'],
+    'NOP': ['new', 'orleans', 'pelicans', 'nop', 'no'],
+    'NYK': ['new', 'york', 'knicks', 'nyk', 'ny'],
+    'OKC': ['oklahoma', 'city', 'thunder', 'okc', 'ok'],
+    'ORL': ['orlando', 'magic', 'orl'],
+    'PHI': ['philadelphia', '76ers', 'sixers', 'phi'],
+    'PHX': ['phoenix', 'suns', 'phx', 'pho'],
+    'POR': ['portland', 'trail', 'blazers', 'por'],
+    'SAC': ['sacramento', 'kings', 'sac'],
+    'SAS': ['san', 'antonio', 'spurs', 'sas', 'sa'],
+    'TOR': ['toronto', 'raptors', 'tor'],
+    'UTA': ['utah', 'jazz', 'uta'],
+    'WAS': ['washington', 'wizards', 'was'],
+    
+    // MLB
+    'ARI': ['arizona', 'diamondbacks', 'dbacks', 'ari', 'az'],
+    'ATL': ['atlanta', 'braves', 'atl'],
+    'BAL': ['baltimore', 'orioles', 'bal'],
+    'BOS': ['boston', 'red', 'sox', 'redsox', 'bos'],
+    'CHC': ['chicago', 'cubs', 'chc'],
+    'CHW': ['chicago', 'white', 'sox', 'whitesox', 'chw', 'cws'],
+    'CIN': ['cincinnati', 'reds', 'cin'],
+    'CLE': ['cleveland', 'guardians', 'cle'],
+    'COL': ['colorado', 'rockies', 'col'],
+    'DET': ['detroit', 'tigers', 'det'],
+    'HOU': ['houston', 'astros', 'hou'],
+    'KC': ['kansas', 'city', 'royals', 'kc', 'kcr'],
+    'LAA': ['los', 'angeles', 'angels', 'laa', 'ana'],
+    'LAD': ['dodgers', 'lad'],
+    'MIA': ['miami', 'marlins', 'mia'],
+    'MIL': ['milwaukee', 'brewers', 'mil'],
+    'MIN': ['minnesota', 'twins', 'min'],
+    'NYM': ['new', 'york', 'mets', 'nym'],
+    'NYY': ['yankees', 'nyy'],
+    'OAK': ['oakland', 'athletics', 'oak'],
+    'PHI': ['philadelphia', 'phillies', 'phi'],
+    'PIT': ['pittsburgh', 'pirates', 'pit'],
+    'SD': ['san', 'diego', 'padres', 'sd', 'sdp'],
+    'SEA': ['seattle', 'mariners', 'sea'],
+    'SF': ['san', 'francisco', 'giants', 'sf', 'sfg'],
+    'STL': ['st', 'louis', 'cardinals', 'stl'],
+    'TB': ['tampa', 'bay', 'rays', 'tb', 'tbr'],
+    'TEX': ['texas', 'rangers', 'tex'],
+    'TOR': ['toronto', 'blue', 'jays', 'bluejays', 'tor'],
+    'WAS': ['washington', 'nationals', 'was', 'wsh'],
+    
+    // NFL
+    'ARI': ['arizona', 'cardinals', 'ari', 'az'],
+    'ATL': ['atlanta', 'falcons', 'atl'],
+    'BAL': ['baltimore', 'ravens', 'bal'],
+    'BUF': ['buffalo', 'bills', 'buf'],
+    'CAR': ['carolina', 'panthers', 'car'],
+    'CHI': ['chicago', 'bears', 'chi'],
+    'CIN': ['cincinnati', 'bengals', 'cin'],
+    'CLE': ['cleveland', 'browns', 'cle'],
+    'DAL': ['dallas', 'cowboys', 'dal'],
+    'DEN': ['denver', 'broncos', 'den'],
+    'DET': ['detroit', 'lions', 'det'],
+    'GB': ['green', 'bay', 'packers', 'gb', 'gnb'],
+    'HOU': ['houston', 'texans', 'hou'],
+    'IND': ['indianapolis', 'colts', 'ind'],
+    'JAX': ['jacksonville', 'jaguars', 'jax', 'jac'],
+    'KC': ['kansas', 'city', 'chiefs', 'kc', 'kan'],
+    'LAC': ['los', 'angeles', 'chargers', 'lac', 'sdg'],
+    'LAR': ['rams', 'lar'],
+    'LV': ['las', 'vegas', 'raiders', 'lv', 'oak'],
+    'MIA': ['miami', 'dolphins', 'mia'],
+    'MIN': ['minnesota', 'vikings', 'min'],
+    'NE': ['new', 'england', 'patriots', 'ne', 'nwe'],
+    'NO': ['new', 'orleans', 'saints', 'no', 'nor'],
+    'NYG': ['new', 'york', 'giants', 'nyg'],
+    'NYJ': ['jets', 'nyj'],
+    'PHI': ['philadelphia', 'eagles', 'phi'],
+    'PIT': ['pittsburgh', 'steelers', 'pit'],
+    'SEA': ['seattle', 'seahawks', 'sea'],
+    'SF': ['san', 'francisco', '49ers', 'niners', 'sf', 'sfo'],
+    'TB': ['tampa', 'bay', 'buccaneers', 'bucs', 'tb', 'tam'],
+    'TEN': ['tennessee', 'titans', 'ten'],
+    'WAS': ['washington', 'commanders', 'was', 'wsh'],
+    
+    // NHL
+    'ANA': ['anaheim', 'ducks', 'ana'],
+    'ARI': ['arizona', 'coyotes', 'ari', 'az'],
+    'BOS': ['boston', 'bruins', 'bos'],
+    'BUF': ['buffalo', 'sabres', 'buf'],
+    'CAR': ['carolina', 'hurricanes', 'car'],
+    'CBJ': ['columbus', 'blue', 'jackets', 'cbj', 'clb'],
+    'CGY': ['calgary', 'flames', 'cgy'],
+    'CHI': ['chicago', 'blackhawks', 'chi'],
+    'COL': ['colorado', 'avalanche', 'col'],
+    'DAL': ['dallas', 'stars', 'dal'],
+    'DET': ['detroit', 'red', 'wings', 'det'],
+    'EDM': ['edmonton', 'oilers', 'edm'],
+    'FLA': ['florida', 'panthers', 'fla'],
+    'LAK': ['los', 'angeles', 'kings', 'lak', 'la'],
+    'MIN': ['minnesota', 'wild', 'min'],
+    'MTL': ['montreal', 'canadiens', 'mtl'],
+    'NJD': ['new', 'jersey', 'devils', 'njd', 'nj'],
+    'NSH': ['nashville', 'predators', 'nsh'],
+    'NYI': ['new', 'york', 'islanders', 'nyi'],
+    'NYR': ['rangers', 'nyr'],
+    'OTT': ['ottawa', 'senators', 'ott'],
+    'PHI': ['philadelphia', 'flyers', 'phi'],
+    'PIT': ['pittsburgh', 'penguins', 'pit'],
+    'SEA': ['seattle', 'kraken', 'sea'],
+    'SJS': ['san', 'jose', 'sharks', 'sjs', 'sj'],
+    'STL': ['st', 'louis', 'blues', 'stl'],
+    'TBL': ['tampa', 'bay', 'lightning', 'tbl', 'tb'],
+    'TOR': ['toronto', 'maple', 'leafs', 'tor'],
+    'VAN': ['vancouver', 'canucks', 'van'],
+    'VGK': ['vegas', 'golden', 'knights', 'vgk', 'vgs'],
+    'WPG': ['winnipeg', 'jets', 'wpg'],
+    'WSH': ['washington', 'capitals', 'wsh', 'was']
+};
+
+// Find team code from any variation
+function findTeamCode(teamText) {
+    const normalized = teamText.toLowerCase().replace(/[^a-z]/g, '');
+    
+    for (const [code, variations] of Object.entries(teamMappings)) {
+        for (const variation of variations) {
+            const varNorm = variation.replace(/[^a-z]/g, '');
+            if (normalized === varNorm || normalized.includes(varNorm) || varNorm.includes(normalized)) {
+                return code;
+            }
+        }
+    }
+    
+    return null;
+// Global state
+let currentUser = null;
+let currentSport = null;
+let oddsApiKey = null;
+let bovadaOdds = [];
+let games = [];
+let results = [];
+
+// Auth
+function doSignIn() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(() => auth.signInWithRedirect(provider));
+}
+
+function doSignOut() {
+    auth.signOut();
+}
+
+auth.onAuthStateChanged(user => {
+    if (user) {
+        currentUser = user;
+        document.getElementById('login-screen').classList.add('hidden');
+        
+        const savedSport = localStorage.getItem('selectedSport');
+        const savedApiKey = localStorage.getItem('oddsApiKey');
+        
+        if (savedSport && savedApiKey) {
+            currentSport = savedSport;
+            oddsApiKey = savedApiKey;
+            showMainApp();
+        } else {
+            document.getElementById('sport-selection-screen').classList.remove('hidden');
+        }
+        
+        document.getElementById('user-email').textContent = user.email;
+    } else {
+        currentUser = null;
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('sport-selection-screen').classList.add('hidden');
+        document.getElementById('app-screen').classList.add('hidden');
+    }
+});
+
+function selectSport(sport) {
+    const apiKey = document.getElementById('odds-api-key').value.trim();
+    if (!apiKey) {
+        alert('Please enter your Odds API key');
+        return;
+    }
+    
+    currentSport = sport;
+    oddsApiKey = apiKey;
+    
+    localStorage.setItem('selectedSport', sport);
+    localStorage.setItem('oddsApiKey', apiKey);
+    
+    showMainApp();
+}
+
+function changeSport() {
+    localStorage.removeItem('selectedSport');
+    localStorage.removeItem('oddsApiKey');
+    document.getElementById('app-screen').classList.add('hidden');
+    document.getElementById('sport-selection-screen').classList.remove('hidden');
+}
+
+function showMainApp() {
+    document.getElementById('sport-selection-screen').classList.add('hidden');
+    document.getElementById('app-screen').classList.remove('hidden');
+    
+    const sportNames = {
+        'basketball_nba': 'NBA',
+        'baseball_mlb': 'MLB',
+        'americanfootball_nfl': 'NFL',
+        'icehockey_nhl': 'NHL'
+    };
+    document.getElementById('sport-title').textContent = sportNames[currentSport] + ' Contrarian Tracker';
+    
+    loadData();
+}
+
+function loadData() {
+    if (!currentUser) return;
+    
+    const sportKey = currentSport.replace('_', '-');
+    
+    db.ref(`games/${currentUser.uid}/${sportKey}`).on('value', snap => {
+        games = [];
+        snap.forEach(child => {
+            games.push({ key: child.key, ...child.val() });
+        });
+        renderGames();
+    });
+    
+    db.ref(`results/${currentUser.uid}/${sportKey}`).on('value', snap => {
+        results = [];
+        snap.forEach(child => {
+            results.push({ key: child.key, ...child.val() });
+        });
+        renderResults();
+    });
+}
+
+async function fetchBovadaOdds() {
+    if (!oddsApiKey) {
+        alert('❌ API key not found');
+        return;
+    }
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ Fetching...';
+    
+    try {
+        const response = await fetch(
+            `https://api.the-odds-api.com/v4/sports/${currentSport}/odds/?apiKey=${oddsApiKey}&regions=us&markets=spreads,h2h&bookmakers=bovada`
+        );
+        
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        bovadaOdds = data;
+        
+        alert(`✅ Fetched ${data.length} games from Bovada\n\nRemaining: ${response.headers.get('x-requests-remaining') || 'Unknown'}`);
+    } catch (err) {
+        alert('❌ Failed: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔄 Fetch Bovada Odds';
+    }
+}
+
+function calcImpliedProb(moneyline) {
+    if (moneyline < 0) {
+        return (Math.abs(moneyline) / (Math.abs(moneyline) + 100)) * 100;
+    } else {
+        return (100 / (moneyline + 100)) * 100;
+    }
+}
+
+function importData() {
+    const text = document.getElementById('import-text').value.trim();
+    if (!text) {
+        alert('Please paste SBD data');
+        return;
+    }
+    
+    if (bovadaOdds.length === 0) {
+        alert('Please fetch Bovada odds first');
+        return;
+    }
+    
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    const imported = [];
+    const failed = [];
+    
+    for (let line of lines) {
+        const parts = line.split(/\s+/);
+        if (parts.length < 3) continue;
+        
+        const team = parts[0];
+        const percentages = parts.filter(p => p.includes('%')).map(p => parseFloat(p.replace('%', '')));
+        
+        let spreadMoney = null;
+        let mlMoney = null;
+        
+        if (percentages.length === 4) {
+            spreadMoney = percentages[1];
+            mlMoney = percentages[3];
+        } else if (percentages.length === 2) {
+            spreadMoney = percentages[0];
+            mlMoney = percentages[1];
+        }
+        
+        if (spreadMoney === null || mlMoney === null) {
+            failed.push({ team, reason: 'Could not parse percentages' });
+            continue;
+        }
+        
+        const bovadaGame = findBovadaMatch(team);
+        if (!bovadaGame) {
+            failed.push({ team, reason: 'No Bovada match' });
+            continue;
+        }
+        
+        imported.push({
+            team,
+            spreadMoney,
+            mlMoney,
+            bovadaSpread: bovadaGame.spread,
+            bovadaML: bovadaGame.moneyline
+        });
+    }
+    
+    if (failed.length > 0 && imported.length === 0) {
+        alert(`❌ Import failed:\n\n${failed.map(f => `${f.team}: ${f.reason}`).join('\n')}`);
+        return;
+    }
+    
+    if (imported.length === 0) {
+        alert('No matches found');
+        return;
+    }
+    
+    const sportKey = currentSport.replace('_', '-');
+    imported.forEach(game => {
+        const spreadGap = 50 - game.spreadMoney;
+        const mlImplied = calcImpliedProb(game.bovadaML);
+        const mlGap = mlImplied - game.mlMoney;
+        
+        db.ref(`games/${currentUser.uid}/${sportKey}`).push({
+            team: game.team,
+            spreadMoney: game.spreadMoney,
+            mlMoney: game.mlMoney,
+            bovadaSpread: game.bovadaSpread,
+            bovadaML: game.bovadaML,
+            spreadGap: Math.round(spreadGap * 10) / 10,
+            mlGap: Math.round(mlGap * 10) / 10,
+            timestamp: Date.now()
+        });
+    });
+    
+    alert(`✅ Imported ${imported.length} games`);
+    document.getElementById('import-text').value = '';
+}
+
+function findBovadaMatch(sbdTeam) {
+    const teamCode = findTeamCode(sbdTeam);
+    if (!teamCode) return null;
+    
+    for (let game of bovadaOdds) {
+        const homeCode = findTeamCode(game.home_team);
+        const awayCode = findTeamCode(game.away_team);
+        
+        if (teamCode === homeCode || teamCode === awayCode) {
+            const bovada = game.bookmakers?.find(b => b.key === 'bovada');
+            if (!bovada) continue;
+            
+            const spreads = bovada.markets.find(m => m.key === 'spreads');
+            const h2h = bovada.markets.find(m => m.key === 'h2h');
+            
+            if (!spreads || !h2h) continue;
+            
+            const isHome = teamCode === homeCode;
+            const teamIndex = isHome ? 0 : 1;
+            
+            return {
+                spread: spreads.outcomes[teamIndex]?.point || 0,
+                moneyline: h2h.outcomes[teamIndex]?.price || 0
+            };
+        }
+    }
+    
+    return null;
+}
+
+function renderGames() {
+    const sortBy = document.getElementById('sort-by')?.value || 'largest';
+    
+    const sorted = [...games].sort((a, b) => {
+        if (sortBy === 'spread') {
+            return Math.abs(b.spreadGap || 0) - Math.abs(a.spreadGap || 0);
+        } else if (sortBy === 'ml') {
+            return Math.abs(b.mlGap || 0) - Math.abs(a.mlGap || 0);
+        } else {
+            const aMax = Math.max(Math.abs(a.spreadGap || 0), Math.abs(a.mlGap || 0));
+            const bMax = Math.max(Math.abs(b.spreadGap || 0), Math.abs(b.mlGap || 0));
+            return bMax - aMax;
+        }
+    });
+    
+    const html = sorted.map(game => {
+        const spreadClass = game.spreadGap > 0 ? 'gap-positive' : 'gap-negative';
+        const mlClass = game.mlGap > 0 ? 'gap-positive' : 'gap-negative';
+        
+        return `
+            <div class="game-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="font-size: 22px; margin-bottom: 8px;">${game.team}</h3>
+                        <div style="color: #94a3b8; font-size: 13px;">
+                            Bovada: ${game.bovadaSpread > 0 ? '+' : ''}${game.bovadaSpread} / ${game.bovadaML > 0 ? '+' : ''}${game.bovadaML}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="margin-bottom: 8px;">
+                            <span style="color: #94a3b8; font-size: 12px;">SPREAD:</span>
+                            <span class="gap-display ${spreadClass}">${game.spreadGap > 0 ? '+' : ''}${game.spreadGap}</span>
+                        </div>
+                        <div>
+                            <span style="color: #94a3b8; font-size: 12px;">ML:</span>
+                            <span class="gap-display ${mlClass}">${game.mlGap > 0 ? '+' : ''}${game.mlGap}</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 12px; display: flex; gap: 10px;">
+                    <button onclick="logResult('${game.key}', 'win')" class="btn-primary" style="flex: 1;">✅ Win</button>
+                    <button onclick="logResult('${game.key}', 'loss')" class="btn-secondary" style="flex: 1;">❌ Loss</button>
+                    <button onclick="deleteGame('${game.key}')" class="btn-secondary">🗑️</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    document.getElementById('games-list').innerHTML = html || '<p style="color: #64748b; text-align: center; padding: 40px;">No games yet. Import data to get started.</p>';
+}
+
+function logResult(gameKey, outcome) {
+    const game = games.find(g => g.key === gameKey);
+    if (!game) return;
+    
+    const sportKey = currentSport.replace('_', '-');
+    
+    db.ref(`results/${currentUser.uid}/${sportKey}`).push({
+        team: game.team,
+        spreadGap: game.spreadGap,
+        mlGap: game.mlGap,
+        outcome,
+        timestamp: Date.now()
+    });
+    
+    deleteGame(gameKey);
+}
+
+function deleteGame(gameKey) {
+    const sportKey = currentSport.replace('_', '-');
+    db.ref(`games/${currentUser.uid}/${sportKey}/${gameKey}`).remove();
+}
+
+function clearAllGames() {
+    if (!confirm('Delete all games?')) return;
+    const sportKey = currentSport.replace('_', '-');
+    db.ref(`games/${currentUser.uid}/${sportKey}`).remove();
+}
+
+function renderResults() {
+    const wins = results.filter(r => r.outcome === 'win').length;
+    const losses = results.filter(r => r.outcome === 'loss').length;
+    const total = wins + losses;
+    const winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : 0;
+    
+    document.getElementById('results-stats').innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center;">
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 16px;">
+                <div style="font-size: 28px; font-weight: 700; color: #10b981;">${wins}</div>
+                <div style="color: #94a3b8; font-size: 12px;">WINS</div>
+            </div>
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 16px;">
+                <div style="font-size: 28px; font-weight: 700; color: #ef4444;">${losses}</div>
+                <div style="color: #94a3b8; font-size: 12px;">LOSSES</div>
+            </div>
+            <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 16px;">
+                <div style="font-size: 28px; font-weight: 700; color: #3b82f6;">${winRate}%</div>
+                <div style="color: #94a3b8; font-size: 12px;">WIN RATE</div>
+            </div>
+        </div>
+    `;
+    
+    const recent = [...results].reverse().slice(0, 10);
+    const html = recent.map(r => `
+        <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(15, 23, 42, 0.4); border-radius: 8px; margin: 8px 0;">
+            <span>${r.team}</span>
+            <span style="color: ${r.outcome === 'win' ? '#10b981' : '#ef4444'};">
+                ${r.outcome === 'win' ? '✅ Win' : '❌ Loss'}
+            </span>
+        </div>
+    `).join('');
+    
+    document.getElementById('results-list').innerHTML = html || '<p style="color: #64748b; text-align: center;">No results yet</p>';
+}
+
+</script>
+</body>
+</html>
+
+}
 

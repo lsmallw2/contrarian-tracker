@@ -128,11 +128,21 @@
             <button onclick="fetchBovadaOdds()" class="btn-primary" style="margin-bottom: 16px;">
                 🔄 Fetch Bovada Odds
             </button>
-            <p style="color: #64748b; font-size: 13px; margin-bottom: 12px;">
-                Paste full SBD data (will extract money percentages):
-            </p>
-            <textarea id="import-text" rows="6" placeholder="LAL -3.5 -150 45% 65% 52% 58%
-BOS +3.5 +130 55% 35% 48% 42%"></textarea>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="color: #94a3b8; font-size: 13px; display: block; margin-bottom: 8px;">
+                    1. Paste SPREAD data (from SBD Spread tab):
+                </label>
+                <textarea id="spread-text" rows="4" placeholder="Paste entire Spread tab from SBD..."></textarea>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="color: #94a3b8; font-size: 13px; display: block; margin-bottom: 8px;">
+                    2. Paste MONEYLINE data (from SBD Moneyline tab):
+                </label>
+                <textarea id="ml-text" rows="4" placeholder="Paste entire Moneyline tab from SBD..."></textarea>
+            </div>
+            
             <button onclick="importData()" class="btn-primary" style="width: 100%;">Process Data</button>
         </div>
 
@@ -175,84 +185,7 @@ const auth = firebase.auth();
 const db = firebase.database();
 
 const teamMappings = {
-    'ATL': ['atlanta', 'hawks', 'atl'],
-    'BOS': ['boston', 'celtics', 'bos'],
-    'BKN': ['brooklyn', 'nets', 'bkn', 'brk'],
-    'CHA': ['charlotte', 'hornets', 'cha'],
-    'CHI': ['chicago', 'bulls', 'chi'],
-    'CLE': ['cleveland', 'cavaliers', 'cavs', 'cle'],
-    'DAL': ['dallas', 'mavericks', 'mavs', 'dal'],
-    'DEN': ['denver', 'nuggets', 'den'],
-    'DET': ['detroit', 'pistons', 'det'],
-    'GSW': ['golden', 'state', 'warriors', 'gsw', 'gs'],
-    'HOU': ['houston', 'rockets', 'hou'],
-    'IND': ['indiana', 'pacers', 'ind'],
-    'LAC': ['la', 'clippers', 'lac'],
-    'LAL': ['lakers', 'lal'],
-    'MEM': ['memphis', 'grizzlies', 'mem'],
-    'MIA': ['miami', 'heat', 'mia'],
-    'MIL': ['milwaukee', 'bucks', 'mil'],
-    'MIN': ['minnesota', 'timberwolves', 'wolves', 'min'],
-    'NOP': ['new', 'orleans', 'pelicans', 'nop', 'no'],
-    'NYK': ['new', 'york', 'knicks', 'nyk', 'ny'],
-    'OKC': ['oklahoma', 'city', 'thunder', 'okc', 'ok'],
-    'ORL': ['orlando', 'magic', 'orl'],
-    'PHI': ['philadelphia', '76ers', 'sixers', 'phi'],
-    'PHX': ['phoenix', 'suns', 'phx', 'pho'],
-    'POR': ['portland', 'trail', 'blazers', 'por'],
-    'SAC': ['sacramento', 'kings', 'sac'],
-    'SAS': ['san', 'antonio', 'spurs', 'sas', 'sa'],
-    'TOR': ['toronto', 'raptors', 'tor'],
-    'UTA': ['utah', 'jazz', 'uta'],
-    'WAS': ['washington', 'wizards', 'was'],
-    'ARI': ['arizona', 'diamondbacks', 'dbacks', 'ari', 'az'],
-    'BAL': ['baltimore', 'orioles', 'bal'],
-    'CHC': ['chicago', 'cubs', 'chc'],
-    'CHW': ['chicago', 'white', 'sox', 'whitesox', 'chw', 'cws'],
-    'CIN': ['cincinnati', 'reds', 'cin'],
-    'COL': ['colorado', 'rockies', 'col'],
-    'KC': ['kansas', 'city', 'royals', 'kc', 'kcr'],
-    'LAA': ['los', 'angeles', 'angels', 'laa', 'ana'],
-    'LAD': ['dodgers', 'lad'],
-    'NYM': ['new', 'york', 'mets', 'nym'],
-    'NYY': ['yankees', 'nyy'],
-    'OAK': ['oakland', 'athletics', 'oak'],
-    'SD': ['san', 'diego', 'padres', 'sd', 'sdp'],
-    'SEA': ['seattle', 'mariners', 'sea'],
-    'SF': ['san', 'francisco', 'giants', 'sf', 'sfg'],
-    'STL': ['st', 'louis', 'cardinals', 'stl'],
-    'TB': ['tampa', 'bay', 'rays', 'tb', 'tbr'],
-    'TEX': ['texas', 'rangers', 'tex'],
-    'BUF': ['buffalo', 'bills', 'buf'],
-    'CAR': ['carolina', 'panthers', 'car'],
-    'GB': ['green', 'bay', 'packers', 'gb', 'gnb'],
-    'JAX': ['jacksonville', 'jaguars', 'jax', 'jac'],
-    'LAR': ['rams', 'lar'],
-    'LV': ['las', 'vegas', 'raiders', 'lv', 'oak'],
-    'NE': ['new', 'england', 'patriots', 'ne', 'nwe'],
-    'NO': ['new', 'orleans', 'saints', 'no', 'nor'],
-    'NYG': ['new', 'york', 'giants', 'nyg'],
-    'NYJ': ['jets', 'nyj'],
-    'PIT': ['pittsburgh', 'steelers', 'pit'],
-    'TEN': ['tennessee', 'titans', 'ten'],
-    'ANA': ['anaheim', 'ducks', 'ana'],
-    'CBJ': ['columbus', 'blue', 'jackets', 'cbj', 'clb'],
-    'CGY': ['calgary', 'flames', 'cgy'],
-    'EDM': ['edmonton', 'oilers', 'edm'],
-    'FLA': ['florida', 'panthers', 'fla'],
-    'LAK': ['los', 'angeles', 'kings', 'lak', 'la'],
-    'MTL': ['montreal', 'canadiens', 'mtl'],
-    'NJD': ['new', 'jersey', 'devils', 'njd', 'nj'],
-    'NSH': ['nashville', 'predators', 'nsh'],
-    'NYI': ['new', 'york', 'islanders', 'nyi'],
-    'NYR': ['rangers', 'nyr'],
-    'OTT': ['ottawa', 'senators', 'ott'],
-    'SJS': ['san', 'jose', 'sharks', 'sjs', 'sj'],
-    'TBL': ['tampa', 'bay', 'lightning', 'tbl', 'tb'],
-    'VAN': ['vancouver', 'canucks', 'van'],
-    'VGK': ['vegas', 'golden', 'knights', 'vgk', 'vgs'],
-    'WPG': ['winnipeg', 'jets', 'wpg'],
-    'WSH': ['washington', 'capitals', 'wsh', 'was']
+    'ATL': ['atlanta', 'hawks'], 'BOS': ['boston', 'celtics'], 'BKN': ['brooklyn', 'nets'], 'CHA': ['charlotte', 'hornets'], 'CHI': ['chicago', 'bulls'], 'CLE': ['cleveland', 'cavaliers', 'cavs'], 'DAL': ['dallas', 'mavericks', 'mavs'], 'DEN': ['denver', 'nuggets'], 'DET': ['detroit', 'pistons'], 'GSW': ['golden', 'state', 'warriors'], 'HOU': ['houston', 'rockets'], 'IND': ['indiana', 'pacers'], 'LAC': ['clippers'], 'LAL': ['lakers'], 'MEM': ['memphis', 'grizzlies'], 'MIA': ['miami', 'heat'], 'MIL': ['milwaukee', 'bucks'], 'MIN': ['minnesota', 'timberwolves', 'wolves'], 'NOP': ['new', 'orleans', 'pelicans'], 'NYK': ['knicks'], 'OKC': ['oklahoma', 'city', 'thunder'], 'ORL': ['orlando', 'magic'], 'PHI': ['philadelphia', 'sixers'], 'PHX': ['phoenix', 'suns'], 'POR': ['portland', 'blazers'], 'SAC': ['sacramento', 'kings'], 'SAS': ['san', 'antonio', 'spurs'], 'TOR': ['toronto', 'raptors'], 'UTA': ['utah', 'jazz'], 'WAS': ['washington', 'wizards']
 };
 
 function findTeamCode(teamText) {
@@ -375,6 +308,7 @@ async function fetchBovadaOdds() {
         }
         const data = await response.json();
         bovadaOdds = data;
+        console.log('Bovada odds:', data);
         alert(`✅ Fetched ${data.length} games\n\nRemaining: ${response.headers.get('x-requests-remaining') || 'Unknown'}`);
     } catch (err) {
         alert('❌ Failed: ' + err.message);
@@ -392,47 +326,101 @@ function calcImpliedProb(moneyline) {
     }
 }
 
+function parseSBDData(text) {
+    const teams = {};
+    const lines = text.split('\n');
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Look for team code pattern: "logoXXX"
+        const logoMatch = line.match(/logo([A-Z]{2,3})\b/);
+        if (logoMatch) {
+            const teamCode = logoMatch[1];
+            
+            // Look ahead for percentages - Money% is typically the second percentage
+            let moneyPct = null;
+            for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
+                const pctLine = lines[j].trim();
+                if (pctLine.includes('%')) {
+                    const percentages = pctLine.match(/(\d+)%/g);
+                    if (percentages && percentages.length >= 2) {
+                        // Second percentage is Money%
+                        moneyPct = parseFloat(percentages[1].replace('%', ''));
+                        break;
+                    }
+                }
+            }
+            
+            if (moneyPct !== null) {
+                teams[teamCode] = moneyPct;
+            }
+        }
+    }
+    
+    return teams;
+}
+
 function importData() {
-    const text = document.getElementById('import-text').value.trim();
-    if (!text || bovadaOdds.length === 0) {
-        alert('Please fetch Bovada odds and paste SBD data');
+    const spreadText = document.getElementById('spread-text').value.trim();
+    const mlText = document.getElementById('ml-text').value.trim();
+    
+    if (!spreadText || !mlText) {
+        alert('Please paste both SPREAD and MONEYLINE data from SBD');
         return;
     }
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    
+    if (bovadaOdds.length === 0) {
+        alert('Please fetch Bovada odds first');
+        return;
+    }
+    
+    // Parse both datasets
+    const spreadData = parseSBDData(spreadText);
+    const mlData = parseSBDData(mlText);
+    
+    console.log('Parsed spread data:', spreadData);
+    console.log('Parsed ML data:', mlData);
+    
     const imported = [];
-    for (let line of lines) {
-        const parts = line.split(/\s+/);
-        if (parts.length < 3) continue;
-        const team = parts[0];
-        const percentages = parts.filter(p => p.includes('%')).map(p => parseFloat(p.replace('%', '')));
-        let spreadMoney = null, mlMoney = null;
-        if (percentages.length === 4) {
-            spreadMoney = percentages[1];
-            mlMoney = percentages[3];
-        } else if (percentages.length === 2) {
-            spreadMoney = percentages[0];
-            mlMoney = percentages[1];
+    const allTeams = new Set([...Object.keys(spreadData), ...Object.keys(mlData)]);
+    
+    for (let teamCode of allTeams) {
+        const spreadMoney = spreadData[teamCode];
+        const mlMoney = mlData[teamCode];
+        
+        if (spreadMoney === undefined || mlMoney === undefined) {
+            console.log(`Missing data for ${teamCode}: spread=${spreadMoney}, ml=${mlMoney}`);
+            continue;
         }
-        if (spreadMoney === null || mlMoney === null) continue;
-        const bovadaGame = findBovadaMatch(team);
-        if (!bovadaGame) continue;
+        
+        // Find matching Bovada game
+        const bovadaGame = findBovadaMatch(teamCode);
+        if (!bovadaGame) {
+            console.log(`No Bovada match for ${teamCode}`);
+            continue;
+        }
+        
         imported.push({
-            team,
+            team: teamCode,
             spreadMoney,
             mlMoney,
             bovadaSpread: bovadaGame.spread,
             bovadaML: bovadaGame.moneyline
         });
     }
+    
     if (imported.length === 0) {
-        alert('No matches found');
+        alert('❌ No matches found\n\nCheck console for debug info');
         return;
     }
+    
     const sportKey = currentSport.replace('_', '-');
     imported.forEach(game => {
         const spreadGap = 50 - game.spreadMoney;
         const mlImplied = calcImpliedProb(game.bovadaML);
         const mlGap = mlImplied - game.mlMoney;
+        
         db.ref(`games/${currentUser.uid}/${sportKey}`).push({
             team: game.team,
             spreadMoney: game.spreadMoney,
@@ -444,8 +432,10 @@ function importData() {
             timestamp: Date.now()
         });
     });
+    
     alert(`✅ Imported ${imported.length} games`);
-    document.getElementById('import-text').value = '';
+    document.getElementById('spread-text').value = '';
+    document.getElementById('ml-text').value = '';
 }
 
 function findBovadaMatch(sbdTeam) {

@@ -1,0 +1,27 @@
+name: Scrape SBD
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+      - name: Install dependencies
+        working-directory: ./scraper
+        run: npm install
+      - name: Run scraper
+        working-directory: ./scraper
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: node scrape.js

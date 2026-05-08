@@ -1,0 +1,13 @@
+{
+  "name": "contrarian-scraper",
+  "version": "1.0.0",
+  "scripts": {
+    "scrape": "node scrape.js"
+  },
+  "dependencies": {
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "puppeteer": "^21.5.2",
+    "firebase-admin": "^11.11.1"
+  }
+}
